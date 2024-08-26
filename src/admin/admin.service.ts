@@ -1,26 +1,137 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { createPrismaSelect } from 'utils/createPrismaSelect';
+import { generateUserIdentifier } from 'utils/generateRandomText';
+import createObjectFromArray from 'utils/createObjectFromArray';
+import { PasswordService } from 'src/GlobalService/password.service';
 
 @Injectable()
 export class AdminService {
-  create(createAdminDto: CreateAdminDto) {
-    return 'This action adds a new admin';
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly passwordService: PasswordService,
+  ) {}
+
+  async create({
+    createAdminDto,
+    fields,
+  }: {
+    createAdminDto: CreateAdminDto;
+    fields: string[];
+  }) {
+    const admin = await this.prismaService.admin.create({
+      data: {
+        ...createAdminDto,
+        admin_handle: generateUserIdentifier(
+          createAdminDto.user_name,
+          createAdminDto.last_name,
+        ),
+        password: await this.passwordService.hashPassword(
+          createAdminDto.password,
+        ),
+      },
+      select: createPrismaSelect(fields),
+    });
+    return admin;
   }
 
-  findAll() {
-    return `This action returns all admin`;
+  async findAll({
+    fields,
+    offset,
+    limit,
+    orderBy,
+    sortBy,
+  }: {
+    fields: string[];
+    offset: number;
+    limit: number;
+    orderBy: 'asc' | 'asc';
+    sortBy: string;
+  }) {
+    try {
+      const [data, counts] = await this.prismaService.$transaction([
+        this.prismaService.admin.findMany({
+          select: createPrismaSelect(fields),
+          take: limit,
+          skip: offset,
+          orderBy: createObjectFromArray([sortBy], orderBy),
+        }),
+        this.prismaService.admin.count(),
+      ]);
+
+      return {
+        counts,
+        data,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        error.statusCode ? error.statusCode : 400,
+      );
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} admin`;
+  async findOne({ id, fields }: { id: string; fields: string[] }) {
+    try {
+      const data = await this.prismaService.admin.findUnique({
+        where: { id },
+        select: createPrismaSelect(fields),
+      });
+
+      return data;
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        error.statusCode ? error.statusCode : 400,
+      );
+    }
   }
 
-  update(id: number, updateAdminDto: UpdateAdminDto) {
-    return `This action updates a #${id} admin`;
+  async update({
+    id,
+    updateAdminDto,
+    fields,
+  }: {
+    id: string;
+    updateAdminDto: UpdateAdminDto;
+    fields: string[];
+  }) {
+    try {
+      const encryptedPassword = await this.passwordService.hashPassword(
+        updateAdminDto.password,
+      );
+
+      const data = await this.prismaService.admin.update({
+        where: { id },
+        data: {
+          ...updateAdminDto,
+          password: encryptedPassword,
+        },
+        select: createPrismaSelect(fields),
+      });
+      return data;
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        error.statusCode ? error.statusCode : 400,
+      );
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} admin`;
+  async remove({ id, fields }: { id: string; fields: string[] }) {
+    try {
+      const data = await this.prismaService.admin.delete({
+        where: { id },
+        select: createPrismaSelect(fields),
+      });
+      return data;
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        error.statusCode ? error.statusCode : 400,
+      );
+    }
   }
 }

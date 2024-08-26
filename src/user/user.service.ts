@@ -4,10 +4,14 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { createPrismaSelect } from 'utils/createPrismaSelect';
 import createObjectFromArray from 'utils/createObjectFromArray';
+import { PasswordService } from 'src/GlobalService/password.service';
 
 @Injectable()
 export class UserService {
-  constructor(readonly prismaService: PrismaService) {}
+  constructor(
+    readonly prismaService: PrismaService,
+    readonly passwordService: PasswordService,
+  ) {}
   async create({
     userData,
     fields,
@@ -16,7 +20,10 @@ export class UserService {
     fields: string[];
   }) {
     const user = await this.prismaService.user.create({
-      data: userData,
+      data: {
+        ...userData,
+        password: await this.passwordService.hashPassword(userData.password),
+      },
       select: createPrismaSelect(fields),
     });
     return user;
@@ -80,7 +87,12 @@ export class UserService {
   }) {
     try {
       const user = await this.prismaService.user.update({
-        data: updateUserDto,
+        data: {
+          ...updateUserDto,
+          password: await this.passwordService.hashPassword(
+            updateUserDto.password,
+          ),
+        },
         where: { id: id },
         select: createPrismaSelect(fields),
       });

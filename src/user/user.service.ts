@@ -19,9 +19,34 @@ export class UserService {
     userData: CreateUserDto;
     fields: string[];
   }) {
+    const {
+      address,
+      age,
+      bio,
+      city,
+      country,
+      date_of_birth,
+      email,
+      gender,
+      last_name,
+      phone_number,
+      profile_picture,
+      user_name,
+    } = userData;
     const user = await this.prismaService.user.create({
       data: {
-        ...userData,
+        address,
+        age,
+        bio,
+        city,
+        country,
+        date_of_birth,
+        email,
+        gender,
+        last_name,
+        phone_number,
+        profile_picture,
+        user_name,
         password: await this.passwordService.hashPassword(userData.password),
       },
       select: createPrismaSelect(fields),
@@ -85,10 +110,35 @@ export class UserService {
     updateUserDto: UpdateUserDto;
     fields: string[];
   }) {
+    const {
+      address,
+      age,
+      bio,
+      city,
+      country,
+      date_of_birth,
+      email,
+      gender,
+      last_name,
+      phone_number,
+      profile_picture,
+      user_name,
+    } = updateUserDto;
     try {
       const user = await this.prismaService.user.update({
         data: {
-          ...updateUserDto,
+          address,
+          age,
+          bio,
+          city,
+          country,
+          date_of_birth,
+          email,
+          gender,
+          last_name,
+          phone_number,
+          profile_picture,
+          user_name,
           password: await this.passwordService.hashPassword(
             updateUserDto.password,
           ),

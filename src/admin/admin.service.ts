@@ -21,16 +21,39 @@ export class AdminService {
     createAdminDto: CreateAdminDto;
     fields: string[];
   }) {
+    const {
+      address,
+      age,
+      bio,
+      city,
+      country,
+      date_of_birth,
+      email,
+      gender,
+      last_name,
+      phone_number,
+      profile_picture,
+      role,
+      user_name,
+      password,
+    } = createAdminDto;
     const admin = await this.prismaService.admin.create({
       data: {
-        ...createAdminDto,
-        admin_handle: generateUserIdentifier(
-          createAdminDto.user_name,
-          createAdminDto.last_name,
-        ),
-        password: await this.passwordService.hashPassword(
-          createAdminDto.password,
-        ),
+        address,
+        age,
+        bio,
+        city,
+        country,
+        date_of_birth,
+        email,
+        gender,
+        last_name,
+        phone_number,
+        profile_picture,
+        role,
+        user_name,
+        admin_handle: generateUserIdentifier(user_name, last_name),
+        password: await this.passwordService.hashPassword(password),
       },
       select: createPrismaSelect(fields),
     });
@@ -98,15 +121,43 @@ export class AdminService {
     updateAdminDto: UpdateAdminDto;
     fields: string[];
   }) {
+    const {
+      address,
+      age,
+      bio,
+      city,
+      country,
+      date_of_birth,
+      email,
+      gender,
+      last_name,
+      phone_number,
+      profile_picture,
+      role,
+      user_name,
+      password,
+    } = updateAdminDto;
+
     try {
-      const encryptedPassword = await this.passwordService.hashPassword(
-        updateAdminDto.password,
-      );
+      const encryptedPassword =
+        await this.passwordService.hashPassword(password);
 
       const data = await this.prismaService.admin.update({
         where: { id },
         data: {
-          ...updateAdminDto,
+          address,
+          age,
+          bio,
+          city,
+          country,
+          date_of_birth,
+          email,
+          gender,
+          last_name,
+          phone_number,
+          profile_picture,
+          role,
+          user_name,
           password: encryptedPassword,
         },
         select: createPrismaSelect(fields),

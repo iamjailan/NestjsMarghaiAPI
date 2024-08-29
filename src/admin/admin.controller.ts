@@ -3,35 +3,33 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   HttpException,
   Query,
   Put,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { AuthGuard } from './admin.guard';
+import { Roles } from './role.decorator';
 
 @Controller('admin')
+@UseGuards(AuthGuard)
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly prismService: PrismaService,
   ) {}
 
+  @Roles(['super_admin', 'admin'])
   @Post()
   async create(@Body() createAdminDto: CreateAdminDto) {
-    const admin = await this.prismService.admin.findUnique({
-      where: { email: createAdminDto.email },
-    });
-
-    if (admin) {
-      throw new HttpException('Email already exist please login', 400);
-    }
+    const isSuperAdmin = false;
 
     const fields = [
       'id',
@@ -51,15 +49,33 @@ export class AdminController {
       'bio',
       'admin_handle',
     ];
-
-    const superAdmin = await this.prismService.admin.findMany({
-      where: { role: 'super_admin' },
-    });
-
-    if (superAdmin.length > 0 && createAdminDto.role === 'super_admin') {
-      throw new HttpException('Cannot Create super admin', 400);
-    }
     try {
+      const admin = await this.prismService.admin.findUnique({
+        where: { email: createAdminDto.email },
+      });
+
+      const superAdmin = await this.prismService.admin.findMany({
+        where: { role: 'super_admin' },
+      });
+
+      if (admin) {
+        throw new HttpException(
+          'Email already exist please login',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (superAdmin.length > 0 && createAdminDto.role === 'super_admin') {
+        throw new HttpException('Cannot Create super admin', 400);
+      }
+
+      if (!isSuperAdmin && createAdminDto.role === 'admin') {
+        throw new HttpException(
+          'You can only create Viewer!',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
       const data = await this.adminService.create({ createAdminDto, fields });
 
       return {
@@ -180,6 +196,7 @@ export class AdminController {
     }
   }
 
+  @Roles(['super_admin'])
   @Put(':id')
   async update(
     @Param('id') id: string,
@@ -243,6 +260,7 @@ export class AdminController {
     }
   }
 
+  @Roles(['super_admin'])
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const fields = [

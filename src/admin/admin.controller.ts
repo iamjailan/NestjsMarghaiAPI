@@ -15,11 +15,13 @@ import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AuthGuard } from './admin.guard';
-import { Roles } from './role.decorator';
+import { Roles } from './auth/role.decorator';
+import { AuthenticatedGuard } from './auth/authenticated.guard';
+import { AdminRoleGuard } from './auth/role.guard';
 
 @Controller('admin')
-@UseGuards(AuthGuard)
+@UseGuards(AuthenticatedGuard)
+@UseGuards(AdminRoleGuard)
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
@@ -29,7 +31,7 @@ export class AdminController {
   @Roles(['super_admin', 'admin'])
   @Post()
   async create(@Body() createAdminDto: CreateAdminDto) {
-    const isSuperAdmin = false;
+    const isSuperAdmin = true;
 
     const fields = [
       'id',
@@ -66,7 +68,10 @@ export class AdminController {
       }
 
       if (superAdmin.length > 0 && createAdminDto.role === 'super_admin') {
-        throw new HttpException('Cannot Create super admin', 400);
+        throw new HttpException(
+          'Cannot Create super admin',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       if (!isSuperAdmin && createAdminDto.role === 'admin') {
@@ -184,7 +189,7 @@ export class AdminController {
         where: { id: id },
       });
       if (!admin) {
-        throw new HttpException('Admin not found', 404);
+        throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
       }
       const data = await this.adminService.findOne({ id, fields });
       return {
@@ -231,11 +236,11 @@ export class AdminController {
       });
 
       if (!admin) {
-        throw new HttpException('Admin not found', 404);
+        throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
       }
 
       if (adminByEmail && adminByEmail.email !== admin.email) {
-        throw new HttpException('Email already take!', 400);
+        throw new HttpException('Email already take!', HttpStatus.BAD_REQUEST);
       }
 
       if (updateAdminDto.role === 'super_admin') {

@@ -1,42 +1,160 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
-  Patch,
-  Param,
   Delete,
+  Request,
+  UseGuards,
+  NotFoundException,
+  HttpException,
+  Put,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MeService } from './me.service';
-import { CreateMeDto } from './dto/create-me.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { AuthenticatedGuard } from '../auth/authenticated.guard';
 
-@Controller('*me')
+@UseGuards(AuthenticatedGuard)
+@Controller('/admin/me/route')
 export class MeController {
-  constructor(private readonly meService: MeService) {}
-
-  @Post()
-  create(@Body() createMeDto: CreateMeDto) {
-    return this.meService.create(createMeDto);
-  }
+  constructor(
+    private readonly meService: MeService,
+    private readonly prismaService: PrismaService,
+  ) {}
 
   @Get()
-  findAll() {
-    return this.meService.findAll();
+  async findOne(@Request() request) {
+    const id = request.user.id;
+
+    const fields = [
+      'id',
+      'created_at',
+      'updated_at',
+      'user_name',
+      'last_name',
+      'age',
+      'country',
+      'city',
+      'address',
+      'email',
+      'profile_picture',
+      'gender',
+      'phone_number',
+      'role',
+      'bio',
+      'admin_handle',
+    ];
+
+    try {
+      const admin = await this.prismaService.admin.findUnique({
+        where: { id: id },
+      });
+
+      if (!admin) {
+        throw new NotFoundException();
+      }
+      const adminById = await this.meService.findOne({
+        id,
+        fields,
+      });
+      return {
+        success: true,
+        data: adminById,
+      };
+    } catch (error) {
+      throw new HttpException(error.message, error.statusCode);
+    }
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.meService.findOne(+id);
+  @Put()
+  async update(@Body() updateMeDto: UpdateMeDto, @Request() request) {
+    const id = request.user.id;
+
+    const fields = [
+      'id',
+      'created_at',
+      'updated_at',
+      'user_name',
+      'last_name',
+      'age',
+      'country',
+      'city',
+      'address',
+      'email',
+      'profile_picture',
+      'gender',
+      'phone_number',
+      'role',
+      'bio',
+      'admin_handle',
+    ];
+    try {
+      const admin = await this.prismaService.admin.findUnique({
+        where: { id },
+      });
+      if (!admin) {
+        throw new NotFoundException();
+      }
+      const updatedAdmin = await this.meService.update({
+        id,
+        fields,
+        updateMeDto,
+      });
+      return {
+        success: true,
+        data: updatedAdmin,
+      };
+    } catch (error) {
+      throw new HttpException(error.message, error.statusCode);
+    }
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMeDto: UpdateMeDto) {
-    return this.meService.update(+id, updateMeDto);
-  }
+  @Delete()
+  async remove(@Request() request) {
+    const id = request.user.id;
+    const role = request.user.role;
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.meService.remove(+id);
+    if (role === 'super_admin') {
+      throw new ForbiddenException();
+    }
+
+    const fields = [
+      'id',
+      'created_at',
+      'updated_at',
+      'user_name',
+      'last_name',
+      'age',
+      'country',
+      'city',
+      'address',
+      'email',
+      'profile_picture',
+      'gender',
+      'phone_number',
+      'role',
+      'bio',
+      'admin_handle',
+    ];
+
+    try {
+      const admin = await this.prismaService.admin.findUnique({
+        where: { id },
+      });
+      if (!admin) {
+        throw new NotFoundException();
+      }
+      const deletedAdmin = await this.meService.remove({
+        id,
+        fields,
+      });
+      return {
+        success: true,
+        data: deletedAdmin,
+      };
+    } catch (error) {
+      throw new HttpException(error.message, error.statusCode);
+    }
   }
 }

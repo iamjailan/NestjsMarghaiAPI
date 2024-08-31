@@ -231,13 +231,13 @@ export class AdminController {
         where: { id: id },
       });
 
-      const adminByEmail = await this.prismService.admin.findUnique({
-        where: { email: updateAdminDto.email },
-      });
-
       if (!admin) {
         throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
       }
+
+      const adminByEmail = await this.prismService.admin.findUnique({
+        where: { email: updateAdminDto.email },
+      });
 
       if (adminByEmail && adminByEmail.email !== admin.email) {
         throw new HttpException('Email already take!', HttpStatus.BAD_REQUEST);

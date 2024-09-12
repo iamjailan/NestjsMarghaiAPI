@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "prisma generate && prisma migrate deploy && nest build",
+    "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -24,7 +24,7 @@
     "prisma:studio": "npx prisma studio",
     "prisma:show": "npx prisma migrate status",
     "prisma:deploy": "npx prisma migrate dev",
-    "prisma:deployProd": "npx prisma migrate deploy"
+    "prisma:prod": "prisma migrate deploy"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
